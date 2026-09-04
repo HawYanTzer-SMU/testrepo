@@ -18,7 +18,7 @@ export function ClientHeader({
   name: string
   domicile: string
   mandate: string
-  since: string
+  since?: string
   relationshipValue: string
   segment: string
   lastContact: string
@@ -59,11 +59,15 @@ export function ClientHeader({
                 <dt className="sr-only">Mandate</dt>
                 <dd>{mandate}</dd>
               </div>
-              <span aria-hidden>·</span>
-              <div className="flex gap-1">
-                <dt className="sr-only">Client since</dt>
-                <dd>Client since {since}</dd>
-              </div>
+              {since ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <div className="flex gap-1">
+                    <dt className="sr-only">Client since</dt>
+                    <dd>Client since {since}</dd>
+                  </div>
+                </>
+              ) : null}
               <span aria-hidden>·</span>
               <div className="flex gap-1">
                 <dt>Relationship value</dt>

@@ -77,12 +77,7 @@ function NavItem({
 
 export function ApplicationShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const today = new Date(2026, 8, 5).toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const today = 'Saturday, 5 September 2026'
 
   return (
     <div className="flex min-h-svh bg-background">

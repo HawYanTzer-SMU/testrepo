@@ -15,7 +15,7 @@ export default function MorningCockpitPage() {
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-6 py-6 lg:px-8">
       <PageHeader
-        eyebrow="Morning Cockpit · Friday, 5 September 2026"
+        eyebrow="Morning Cockpit · Saturday, 5 September 2026"
         title="Good morning, Sarah"
         subtitle="5 clients require attention today. 2 are time-sensitive."
       />

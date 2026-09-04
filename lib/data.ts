@@ -415,7 +415,7 @@ export const lauAdviceHistory: AdviceEntry[] = [
 
 /* ---------- Action Queue ---------- */
 
-export type ActionStatus = 'Awaiting Review' | 'Approved' | 'Deferred' | 'Completed'
+export type ActionStatus = 'Awaiting Review' | 'Approved' | 'Deferred' | 'Completed' | 'Rejected'
 
 export interface ActionItem {
   id: string
@@ -691,6 +691,25 @@ export const adviceLedger: LedgerRow[] = [
     ],
   },
 ]
+
+/* ---------- Recommendation panel: Lau Chi Ming ---------- */
+
+export const lauRecommendation = {
+  primary:
+    'Arrange an immediate credit review and identify additional collateral or liquid assets before the upcoming obligation.',
+  reasons: [
+    { text: 'LTV is 69.41% against a 70% liquidation trigger.', source: 'Credit Facility' as SourceSystem },
+    { text: 'Available liquidity is HKD 16m below the upcoming obligation.', source: 'Holdings' as SourceSystem },
+    { text: 'Previous collateral-buffer advice was deferred.', source: 'Advice Ledger' as SourceSystem },
+  ],
+  tradeoffs: [
+    { title: 'Liquidating assets', detail: 'May crystallise losses on positions currently below acquisition value.' },
+    { title: 'Adding collateral', detail: 'May reduce liquidity elsewhere and constrain other planned obligations.' },
+  ],
+  specialistReview: 'Credit specialist review required',
+  communicationGuidance:
+    'Lead with protecting liquidity and collateral flexibility. Present acting now versus delaying side-by-side.',
+}
 
 export const clients = [
   { id: 'lau-chi-ming', name: 'Lau Chi Ming', domicile: 'Hong Kong', mandate: 'Balanced Growth', value: 'HKD 184m', priority: 'ACTION REQUIRED' as Priority, lastContact: '22 Aug 2026' },
