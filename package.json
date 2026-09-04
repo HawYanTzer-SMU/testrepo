@@ -5,10 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:validate": "tsx scripts/validate.ts",
+    "db:insights": "tsx scripts/generate-insights.ts",
+    "db:recommendations": "tsx scripts/generate-recommendations.ts",
+    "db:setup": "npm run db:migrate && npm run db:seed && npm run db:validate && npm run db:insights && npm run db:recommendations"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@supabase/supabase-js": "^2.45.0",
     "@vercel/analytics": "1.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -26,8 +33,12 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
     "postcss": "^8.5",
+    "postgres": "^3.4.4",
     "tailwindcss": "^4.3.3",
-    "typescript": "5.7.3"
+    "tsx": "^4.19.1",
+    "typescript": "^5.9.0"
   }
 }

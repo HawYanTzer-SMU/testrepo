@@ -1,82 +1,64 @@
 import { cn } from '@/lib/utils'
-import type { AdviceEntry } from '@/lib/data'
+import type { Recommendation, RecommendationEvent } from '@/lib/supabase/types'
+import { toAdviceStatus, eventLabel, formatDate, formatDateTime } from '@/lib/recommendation-display'
 import { AdviceStatusBadge } from './advice-status-badge'
-import { SourceCitation } from './source-citation'
 
-export function AdviceTimeline({ entries }: { entries: AdviceEntry[] }) {
+export interface RecommendationWithEvents {
+  recommendation: Recommendation
+  events: RecommendationEvent[]
+}
+
+/** One card per recommendation, each showing its own event lifecycle inline. */
+export function AdviceTimeline({ items }: { items: RecommendationWithEvents[] }) {
   return (
-    <ol className="flex flex-col">
-      {entries.map((entry, i) => (
-        <li key={entry.id} className="flex gap-4">
-          <div className="flex flex-col items-center">
-            <span
-              className={cn(
-                'mt-1.5 size-2.5 shrink-0 rounded-full border-2 border-card',
-                entry.current ? 'bg-primary ring-2 ring-primary/25' : 'bg-muted-foreground/40',
-              )}
-            />
-            {i < entries.length - 1 ? <span className="w-px flex-1 bg-border" /> : null}
-          </div>
-
-          <div className={cn('flex flex-1 flex-col gap-3 pb-8', i === entries.length - 1 && 'pb-0')}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <time className="tabular text-xs font-medium text-muted-foreground">{entry.date}</time>
-                <AdviceStatusBadge status={entry.status} size="sm" />
-              </div>
-            </div>
-
-            <div
-              className={cn(
-                'flex flex-col gap-3 rounded-lg border bg-card p-4',
-                entry.current && 'border-primary/30',
-              )}
-            >
+    <ol className="flex flex-col gap-4">
+      {items.map(({ recommendation: r, events }) => {
+        const latestEvent = events.at(-1)
+        const status = toAdviceStatus(r.status, latestEvent?.event_type)
+        return (
+          <li
+            key={r.id}
+            className={cn(
+              'flex flex-col gap-3 rounded-lg border bg-card p-4',
+              status === 'Resurfaced' && 'border-signal-critical/30',
+            )}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                  {entry.current ? 'Current recommendation' : 'Recommendation'}
-                </p>
-                <p className="text-sm font-medium text-pretty">{entry.recommendation}</p>
+                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">{r.title}</p>
+                <p className="text-sm font-medium text-pretty">{r.recommendation}</p>
               </div>
-
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground/80">Trigger — </span>
-                {entry.trigger}
-              </p>
-
-              <div className="grid gap-3 border-t pt-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-[11px] tracking-wide text-muted-foreground uppercase">Outcome</p>
-                  <p className="text-xs text-foreground/90">{entry.outcome}</p>
-                  {entry.clientReason ? (
-                    <p className="text-xs text-muted-foreground italic">“{entry.clientReason}”</p>
-                  ) : null}
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-[11px] tracking-wide text-muted-foreground uppercase">RM comment</p>
-                  <p className="text-xs text-foreground/90">{entry.rmComment}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground/80">Follow-up trigger — </span>
-                  {entry.followUpTrigger}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  {entry.evidence.map((ev) => (
-                    <span key={ev.label} className="flex items-center gap-1 text-xs">
-                      <span className="text-muted-foreground">{ev.label}</span>
-                      <span className="tabular font-medium">{ev.value}</span>
-                      <SourceCitation source={ev.source} compact />
-                    </span>
-                  ))}
-                </div>
+              <div className="flex items-center gap-2">
+                <AdviceStatusBadge status={status} size="sm" />
+                <span className="tabular text-xs text-muted-foreground">{formatDate(r.created_at)}</span>
               </div>
             </div>
-          </div>
-        </li>
-      ))}
+
+            {r.rationale ? <p className="text-xs leading-relaxed text-muted-foreground">{r.rationale}</p> : null}
+
+            {events.length ? (
+              <ol className="flex flex-col border-t pt-3">
+                {events.map((e, i) => (
+                  <li key={e.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className={cn('mt-1 size-2 shrink-0 rounded-full', i === events.length - 1 ? 'bg-primary' : 'bg-muted-foreground/40')} />
+                      {i < events.length - 1 ? <span className="w-px flex-1 bg-border" /> : null}
+                    </div>
+                    <div className={cn('flex flex-col gap-0.5 pb-3', i === events.length - 1 && 'pb-0')}>
+                      <div className="flex items-center gap-2">
+                        <time className="tabular text-xs font-medium text-muted-foreground">{formatDateTime(e.created_at)}</time>
+                        {e.created_by ? <span className="text-xs text-muted-foreground">· {e.created_by}</span> : null}
+                      </div>
+                      <p className="text-xs text-foreground/90">{eventLabel(e.event_type)}</p>
+                      {e.notes ? <p className="text-xs text-muted-foreground italic">{e.notes}</p> : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+          </li>
+        )
+      })}
     </ol>
   )
 }

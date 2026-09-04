@@ -5,14 +5,22 @@ import { ChevronDownIcon, NetworkIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { lauKeystone } from '@/lib/data'
-import { SourceCitation, AssistLabel, SystemLabel } from './source-citation'
+import { AssistLabel, SystemLabel } from './source-citation'
+import type { InsightWithEvidence } from '@/services/insights'
 
-const shades = ['bg-primary', 'bg-primary/75', 'bg-primary/50', 'bg-primary/30']
+const shades = ['bg-primary', 'bg-primary/75', 'bg-primary/50', 'bg-primary/30', 'bg-primary/20']
 
-export function KeystoneInsight() {
+export function KeystoneInsight({ insight }: { insight: InsightWithEvidence | null }) {
   const [open, setOpen] = React.useState(false)
-  const total = lauKeystone.breakdown.reduce((a, b) => a + b.pct, 0)
+
+  if (!insight) {
+    return (
+      <section className="rounded-lg border bg-card p-5 text-sm text-muted-foreground">
+        No concentration signal currently open for this client — holdings are diversified within the {' '}
+        {35}% region-concentration threshold used by the rules engine.
+      </section>
+    )
+  }
 
   return (
     <section aria-labelledby="keystone-heading" className="rounded-lg border bg-card">
@@ -21,33 +29,13 @@ export function KeystoneInsight() {
           <div className="flex items-center gap-2">
             <NetworkIcon className="size-4 text-muted-foreground" />
             <h3 id="keystone-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-              Keystone insight · {lauKeystone.title}
+              Keystone insight · Concentration
             </h3>
           </div>
-          <AssistLabel>Statement drafted</AssistLabel>
+          <SystemLabel>Rules-generated</SystemLabel>
         </div>
 
-        <p className="font-serif text-lg leading-snug text-pretty">{lauKeystone.statement}</p>
-
-        {/* stacked bar */}
-        <div className="flex flex-col gap-2">
-          <div className="flex h-3 overflow-hidden rounded-sm bg-muted" role="img" aria-label={`${total}% connected exposure`}>
-            {lauKeystone.breakdown.map((b, i) => (
-              <div key={b.label} className={cn(shades[i])} style={{ width: `${(b.pct / total) * 100}%` }} />
-            ))}
-          </div>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
-            {lauKeystone.breakdown.map((b, i) => (
-              <div key={b.label} className="flex items-start gap-2">
-                <span aria-hidden className={cn('mt-1 size-2 shrink-0 rounded-sm', shades[i])} />
-                <div className="min-w-0">
-                  <dd className="tabular text-base font-medium leading-none">{b.pct}%</dd>
-                  <dt className="mt-1 text-xs text-muted-foreground">{b.label}</dt>
-                </div>
-              </div>
-            ))}
-          </dl>
-        </div>
+        <p className="font-serif text-lg leading-snug text-pretty">{insight.summary}</p>
       </div>
 
       <Collapsible open={open} onOpenChange={setOpen}>
@@ -56,29 +44,20 @@ export function KeystoneInsight() {
             Show working
             <ChevronDownIcon data-icon="inline-end" className={cn('transition-transform', open && 'rotate-180')} />
           </CollapsibleTrigger>
-          <SystemLabel>Percentages system-calculated</SystemLabel>
+          <AssistLabel>Traced to holdings</AssistLabel>
         </div>
         <CollapsibleContent>
           <div className="border-t bg-surface p-5">
             <p className="mb-3 text-xs text-muted-foreground">
-              Denominator: liquid wealth HKD 184.0m (Holdings, 04 Sep 2026 close). Look-through applied to funds
-              and structured products using latest available underlying data.
+              Every contributing position below is a real holding as of the latest snapshot.
             </p>
             <ul className="flex flex-col divide-y rounded-md border bg-card">
-              {lauKeystone.breakdown.map((b) => (
-                <li key={b.label} className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 text-sm md:grid-cols-[200px_1fr_auto_auto]">
-                  <span className="font-medium">{b.label}</span>
-                  <span className="hidden text-muted-foreground md:block">{b.detail}</span>
-                  <span className="tabular font-mono text-[13px]">{b.pct}%</span>
-                  <SourceCitation source={b.source} compact className="hidden md:inline-flex" />
+              {insight.evidence.map((e, i) => (
+                <li key={e.id} className="grid grid-cols-[24px_1fr] items-center gap-3 px-4 py-2.5 text-sm">
+                  <span className={cn('size-2.5 shrink-0 rounded-sm', shades[i % shades.length])} />
+                  <span>{e.description}</span>
                 </li>
               ))}
-              <li className="grid grid-cols-[1fr_auto] items-center gap-4 bg-muted/40 px-4 py-2.5 text-sm md:grid-cols-[200px_1fr_auto_auto]">
-                <span className="font-semibold">Total connected exposure</span>
-                <span className="hidden md:block" />
-                <span className="tabular font-mono text-[13px] font-semibold">{total}%</span>
-                <span className="hidden md:block" />
-              </li>
             </ul>
           </div>
         </CollapsibleContent>

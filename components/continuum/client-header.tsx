@@ -75,7 +75,7 @@ export function ClientHeader({
               </div>
             </dl>
             <p className="text-xs text-muted-foreground">
-              {segment} · Last contact {lastContact} · RM: Sarah Lim
+              {segment} · Last contact {lastContact} · RM: Priscilla Ong
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Newsreader } from 'next/font/google'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ApplicationShell } from '@/components/shell/application-shell'
+import { listRecommendations } from '@/services/recommendations'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -32,11 +33,20 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  let awaitingReviewCount = 0
+  try {
+    const recommendations = await listRecommendations()
+    awaitingReviewCount = recommendations.filter((r) => r.status === 'DRAFT' || r.status === 'READY_FOR_REVIEW').length
+  } catch {
+    // Shell renders with a zero badge if Supabase isn't reachable; the page
+    // body itself surfaces the real error.
+  }
+
   return (
     <html
       lang="en"
@@ -44,7 +54,7 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased">
         <TooltipProvider>
-          <ApplicationShell>{children}</ApplicationShell>
+          <ApplicationShell actionQueueCount={awaitingReviewCount}>{children}</ApplicationShell>
         </TooltipProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

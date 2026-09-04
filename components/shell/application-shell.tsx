@@ -17,12 +17,14 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-const primaryNav = [
-  { href: '/', label: 'Morning Cockpit', icon: SunriseIcon },
-  { href: '/clients', label: 'Clients', icon: UsersIcon },
-  { href: '/actions', label: 'Action Queue', icon: InboxIcon, badge: 3 },
-  { href: '/ledger', label: 'Advice Ledger', icon: BookOpenIcon },
-]
+function buildPrimaryNav(actionQueueCount: number) {
+  return [
+    { href: '/', label: 'Morning Cockpit', icon: SunriseIcon },
+    { href: '/clients', label: 'Clients', icon: UsersIcon },
+    { href: '/actions', label: 'Action Queue', icon: InboxIcon, badge: actionQueueCount || undefined },
+    { href: '/ledger', label: 'Advice Ledger', icon: BookOpenIcon },
+  ]
+}
 
 const secondaryNav = [
   { href: '/data-sources', label: 'Data Sources', icon: DatabaseIcon },
@@ -75,9 +77,16 @@ function NavItem({
   )
 }
 
-export function ApplicationShell({ children }: { children: React.ReactNode }) {
+export function ApplicationShell({
+  children,
+  actionQueueCount = 0,
+}: {
+  children: React.ReactNode
+  actionQueueCount?: number
+}) {
   const pathname = usePathname()
   const today = 'Saturday, 5 September 2026'
+  const primaryNav = buildPrimaryNav(actionQueueCount)
 
   return (
     <div className="flex min-h-svh bg-background">
@@ -157,11 +166,11 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2.5 border-l pl-4">
               <Avatar className="size-7">
                 <AvatarFallback className="bg-primary text-[11px] font-medium text-primary-foreground">
-                  SL
+                  PO
                 </AvatarFallback>
               </Avatar>
               <div className="hidden leading-tight md:block">
-                <p className="text-[13px] font-medium">Sarah Lim</p>
+                <p className="text-[13px] font-medium">Priscilla Ong</p>
                 <p className="text-[11px] text-muted-foreground">Senior Relationship Manager</p>
               </div>
             </div>

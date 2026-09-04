@@ -17,12 +17,12 @@ export default function SettingsPage() {
       <section className="flex items-center gap-4 rounded-lg border bg-card p-5">
         <Avatar className="size-12 rounded-md">
           <AvatarFallback className="rounded-md bg-primary font-serif text-lg text-primary-foreground">
-            SL
+            PO
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-medium">Sarah Lim</p>
-          <p className="text-xs text-muted-foreground">Senior Relationship Manager · Asia Pacific Desk</p>
+          <p className="text-sm font-medium">Priscilla Ong</p>
+          <p className="text-xs text-muted-foreground">Senior Relationship Manager · Asia desk (Singapore &amp; Hong Kong)</p>
         </div>
       </section>
 

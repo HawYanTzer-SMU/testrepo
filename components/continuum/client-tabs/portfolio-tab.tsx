@@ -1,11 +1,36 @@
 import { LockIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { lauPortfolio } from '@/lib/data'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SourceCitation } from '../source-citation'
 import { MandateComparison } from '../mandate-comparison'
+import { allocationByAssetClass, topHoldings, totalValueUsd } from '@/lib/portfolio-analytics'
+import type { HoldingWithInstrument, MandateAllocation, Portfolio } from '@/lib/supabase/types'
+import { formatMoney } from '@/lib/format'
 
-export function PortfolioTab() {
+export function PortfolioTab({
+  portfolios,
+  holdings,
+  mandateAllocations,
+  collateralPortfolioIds,
+}: {
+  portfolios: Portfolio[]
+  holdings: HoldingWithInstrument[]
+  mandateAllocations: MandateAllocation[]
+  collateralPortfolioIds: Set<string>
+}) {
+  const primaryPortfolio = portfolios[0]
+  const allocation = allocationByAssetClass(holdings)
+  const rows = allocation.map((a) => {
+    const rule = mandateAllocations.find((m) => m.asset_class === a.label)
+    return {
+      asset: a.label,
+      pct: Number(a.pct.toFixed(1)),
+      value: formatMoney(a.valueUsd),
+      target: rule ? `${rule.min_pct}–${rule.max_pct}%` : '0–100%',
+    }
+  })
+  const top = topHoldings(holdings, 8)
+
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
       <section aria-labelledby="alloc-heading" className="flex flex-col gap-3">
@@ -13,13 +38,18 @@ export function PortfolioTab() {
           <h3 id="alloc-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
             Allocation vs mandate
           </h3>
-          <SourceCitation source="Holdings" asOf="04 Sep 2026" />
+          <SourceCitation source="Holdings" compact />
         </div>
         <div className="rounded-md border bg-card p-4">
           <p className="mb-4 text-xs text-muted-foreground">
-            Total assets <span className="tabular font-medium text-foreground">{lauPortfolio.total}</span> · Balanced Growth mandate
+            Total holdings <span className="tabular font-medium text-foreground">{formatMoney(totalValueUsd(holdings))}</span>
+            {primaryPortfolio?.mandate_code ? ` · ${primaryPortfolio.mandate_code} mandate` : ''}
           </p>
-          <MandateComparison rows={lauPortfolio.allocation} />
+          {rows.length ? (
+            <MandateComparison rows={rows} />
+          ) : (
+            <p className="text-sm text-muted-foreground">No holdings on record.</p>
+          )}
         </div>
       </section>
 
@@ -43,27 +73,36 @@ export function PortfolioTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lauPortfolio.topHoldings.map((h) => (
-                <TableRow key={h.name}>
+              {top.map((h) => (
+                <TableRow key={h.id}>
                   <TableCell>
-                    <p className="font-medium">{h.name}</p>
-                    <p className="font-mono text-[11px] text-muted-foreground">{h.ticker}</p>
+                    <p className="font-medium">{h.instrument.instrument_name}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{h.instrument_id}</p>
                   </TableCell>
-                  <TableCell className="tabular text-right">{h.value}</TableCell>
+                  <TableCell className="tabular text-right">{formatMoney(h.market_value_usd)}</TableCell>
                   <TableCell
                     className={cn(
                       'tabular text-right',
-                      h.pnl.startsWith('−') && 'text-signal-critical',
-                      h.pnl.startsWith('+') && 'text-signal-positive',
+                      (h.unrealised_pnl_pct ?? 0) < 0 && 'text-signal-critical',
+                      (h.unrealised_pnl_pct ?? 0) > 0 && 'text-signal-positive',
                     )}
                   >
-                    {h.pnl}
+                    {h.unrealised_pnl_pct != null ? `${h.unrealised_pnl_pct > 0 ? '+' : ''}${h.unrealised_pnl_pct.toFixed(1)}%` : '—'}
                   </TableCell>
                   <TableCell>
-                    {h.pledged ? <LockIcon className="size-3.5 text-muted-foreground" aria-label="Pledged" /> : null}
+                    {collateralPortfolioIds.has(h.portfolio_id) ? (
+                      <LockIcon className="size-3.5 text-muted-foreground" aria-label="Pledged" />
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
+              {!top.length ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                    No holdings on record.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </div>

@@ -1,90 +1,92 @@
-import { lauFamily } from '@/lib/data'
-import { FamilyTree } from '../family-tree'
 import { SourceCitation } from '../source-citation'
+import { formatMoney } from '@/lib/format'
+import type { Commitment, PlannedCashNeed } from '@/lib/supabase/types'
 
-export function FamilyTab() {
+// The official dataset has no family-tree / estate-planning fields at all —
+// the previous version of this tab fabricated a spouse, children and estate
+// status. Rather than wire fake data to a real backend, this tab now shows
+// what the dataset actually supports for "life & liquidity planning":
+// planned_cash_needs (many of which are family-driven — school fees,
+// inheritance tax, elderly-parent support) and private-market commitments.
+export function FamilyTab({
+  plannedCashNeeds,
+  commitments,
+}: {
+  plannedCashNeeds: PlannedCashNeed[]
+  commitments: Commitment[]
+}) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
-      <section aria-labelledby="family-heading" className="flex flex-col gap-3">
-        <h3 id="family-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-          Family
-        </h3>
-        <div className="rounded-md border bg-card p-5">
-          <FamilyTree />
+    <div className="grid gap-6 lg:grid-cols-2">
+      <section aria-labelledby="cash-needs-heading" className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 id="cash-needs-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
+            Planned cash needs
+          </h3>
+          <SourceCitation source="CRM" compact />
         </div>
+        {plannedCashNeeds.length ? (
+          <ul className="flex flex-col divide-y rounded-md border bg-card">
+            {plannedCashNeeds.map((n) => (
+              <li key={n.need_id} className="flex flex-col gap-1.5 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium text-pretty">{n.description}</p>
+                  <span className="tabular shrink-0 text-sm font-medium">{formatMoney(n.amount, n.currency)}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    {n.due_from} – {n.due_to}
+                  </span>
+                  <span>·</span>
+                  <span>{n.recurrence}</span>
+                  <span>·</span>
+                  <span>{n.certainty}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-md border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+            No planned cash needs recorded.
+          </p>
+        )}
       </section>
 
-      <div className="flex flex-col gap-6">
-        <section aria-labelledby="business-heading" className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h3 id="business-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-              Family business obligations
-            </h3>
-          </div>
-          <ul className="flex flex-col divide-y rounded-md border bg-card">
-            {lauFamily.businessObligations.map((o) => (
-              <li key={o.label} className="flex items-center justify-between gap-3 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{o.label}</p>
-                  <p className="text-xs text-muted-foreground">{o.date}</p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="tabular text-sm font-medium">{o.value}</span>
-                  <SourceCitation source={o.source} compact />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <div className="grid gap-6 sm:grid-cols-2">
-          <section aria-labelledby="estate-heading" className="flex flex-col gap-3">
-            <h3 id="estate-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-              Estate planning
-            </h3>
-            <div className="flex flex-col gap-2 rounded-md border bg-card p-4">
-              <span className="w-fit rounded-sm bg-signal-warning-muted px-1.5 py-px text-[10px] font-semibold tracking-wide text-signal-warning-foreground uppercase">
-                {lauFamily.estatePlanning.status}
-              </span>
-              <p className="text-xs leading-relaxed text-muted-foreground text-pretty">
-                {lauFamily.estatePlanning.detail}
-              </p>
-              <SourceCitation source={lauFamily.estatePlanning.source} compact className="mt-auto" />
-            </div>
-          </section>
-
-          <section aria-labelledby="events-heading" className="flex flex-col gap-3">
-            <h3 id="events-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-              Upcoming life events
-            </h3>
-            <ul className="flex flex-col divide-y rounded-md border bg-card">
-              {lauFamily.lifeEvents.map((e) => (
-                <li key={e.label} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <span>{e.label}</span>
-                  <span className="tabular shrink-0 text-xs text-muted-foreground">{e.when}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-
-        <section aria-labelledby="liquidity-heading" className="flex flex-col gap-3">
-          <h3 id="liquidity-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-            Upcoming liquidity needs
+      <section aria-labelledby="commitments-heading" className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 id="commitments-heading" className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
+            Private-market commitments
           </h3>
+          <SourceCitation source="Holdings" compact />
+        </div>
+        {commitments.length ? (
           <ul className="flex flex-col divide-y rounded-md border bg-card">
-            {lauFamily.liquidityNeeds.map((n) => (
-              <li key={n.label} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <span>{n.label}</span>
-                <span className="flex items-center gap-3">
-                  <span className="tabular font-medium">{n.value}</span>
-                  <span className="text-xs text-muted-foreground">{n.when}</span>
-                </span>
+            {commitments.map((c) => (
+              <li key={c.commitment_id} className="flex flex-col gap-1.5 px-4 py-3">
+                <p className="text-sm font-medium">{c.fund_name}</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Committed</p>
+                    <p className="tabular font-medium">{formatMoney(c.committed, c.currency)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Called</p>
+                    <p className="tabular font-medium">{formatMoney(c.called_to_date, c.currency)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Uncalled</p>
+                    <p className="tabular font-medium">{formatMoney(c.uncalled, c.currency)}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Expected call window: {c.expected_call_window}</p>
               </li>
             ))}
           </ul>
-        </section>
-      </div>
+        ) : (
+          <p className="rounded-md border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+            No private-market commitments recorded.
+          </p>
+        )}
+      </section>
     </div>
   )
 }
