@@ -23,13 +23,15 @@ async function main() {
 
   let totalCreated = 0
   let totalSkipped = 0
-  for (const [clientId, { created, skipped }] of Object.entries(results)) {
-    console.log(`  ${clientId}: +${created} new, ${skipped} already open`)
+  let totalDismissed = 0
+  for (const [clientId, { created, skipped, dismissed }] of Object.entries(results)) {
+    console.log(`  ${clientId}: +${created} new, ${skipped} already open, ${dismissed} dismissed as stale`)
     totalCreated += created
     totalSkipped += skipped
+    totalDismissed += dismissed
   }
 
-  console.log(`\n✓ Done. ${totalCreated} insights created, ${totalSkipped} already existed.`)
+  console.log(`\n✓ Done. ${totalCreated} created, ${totalSkipped} already existed, ${totalDismissed} dismissed as stale.`)
 }
 
 main().catch((err) => {

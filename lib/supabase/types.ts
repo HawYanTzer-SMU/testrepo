@@ -271,6 +271,8 @@ export type Recommendation = {
   status: RecommendationStatus
   created_at: string
   updated_at: string
+  scenario_id: string | null
+  is_demo: boolean
 }
 
 export type RecommendationEventType =
@@ -292,6 +294,55 @@ export type RecommendationEvent = {
   notes: string | null
   created_at: string
   created_by: string | null
+  is_demo: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Demo scenario layer (supabase/migrations/20260101000005_demo_scenarios.sql)
+// ---------------------------------------------------------------------------
+export type ScenarioType =
+  | "HIDDEN_CONCENTRATION"
+  | "LIQUIDITY_CRUNCH"
+  | "MARGIN_RISK"
+  | "BEHAVIOURAL_MISMATCH"
+  | "MANDATE_BREACH"
+  | "ADVICE_RESURFACING"
+  | "MARKET_EVENT_IMPACT"
+
+export type DemoScenarioRow = {
+  id: string
+  scenario_code: string
+  name: string
+  description: string
+  client_id: string | null
+  scenario_type: ScenarioType
+  narrative: Record<string, unknown>
+  active: boolean
+  sort_order: number
+  created_at: string
+}
+
+export type ScenarioOverride = {
+  id: string
+  scenario_id: string
+  entity_type: string
+  entity_id: string
+  field_name: string
+  override_value: string
+  reason: string
+  created_at: string
+}
+
+export type ScenarioEventRow = {
+  id: string
+  scenario_id: string
+  event_type: string
+  event_date: string
+  description: string
+  severity: string | null
+  transmission_channel: string | null
+  is_hypothetical: boolean
+  created_at: string
 }
 
 // ---------------------------------------------------------------------------
@@ -335,8 +386,14 @@ export type Database = {
       rm_notes: Table<RmNote, "created_at" | "updated_at">
       insights: Table<Insight, "id" | "created_at" | "updated_at" | "status">
       insight_evidence: Table<InsightEvidence, "id" | "created_at">
-      recommendations: Table<Recommendation, "id" | "created_at" | "updated_at" | "status" | "priority">
-      recommendation_events: Table<RecommendationEvent, "id" | "created_at">
+      recommendations: Table<
+        Recommendation,
+        "id" | "created_at" | "updated_at" | "status" | "priority" | "scenario_id" | "is_demo"
+      >
+      recommendation_events: Table<RecommendationEvent, "id" | "created_at" | "is_demo">
+      demo_scenarios: Table<DemoScenarioRow, "id" | "active" | "sort_order" | "created_at">
+      scenario_overrides: Table<ScenarioOverride, "id" | "created_at">
+      scenario_events: Table<ScenarioEventRow, "id" | "is_hypothetical" | "created_at">
     }
   }
 }

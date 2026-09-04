@@ -9,16 +9,25 @@ import { CreditTab } from '@/components/continuum/client-tabs/credit-tab'
 import { FamilyTab } from '@/components/continuum/client-tabs/family-tab'
 import { AdviceHistoryTab } from '@/components/continuum/client-tabs/advice-history-tab'
 import { RmNotesPanel } from '@/components/continuum/rm-notes-panel'
+import { ScenarioBanner } from '@/components/continuum/scenario-banner'
 import { getClient360 } from '@/services/client360'
 import { getEventsForRecommendations } from '@/services/recommendations'
 import { classifyPriority } from '@/services/cockpit'
+import { getDemoScenario, getScenarioEvents } from '@/services/scenarios'
 import { formatMoney } from '@/lib/format'
 import type { RecommendationWithEvents } from '@/components/continuum/advice-timeline'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ scenario?: string }>
+}) {
   const { id } = await params
+  const { scenario: scenarioCode } = await searchParams
 
   let data: Awaited<ReturnType<typeof getClient360>>
   try {
@@ -63,7 +72,10 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const primaryFacility = primaryInsight?.insight_type === 'CREDIT_RISK' ? creditFacilities[0] ?? null : null
 
   const activeRecommendation =
-    recommendations.find((r) => ['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'SENT'].includes(r.status)) ?? recommendations[0] ?? null
+    recommendations.find((r) => r.status === 'DEFERRED') ??
+    recommendations.find((r) => ['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'SENT'].includes(r.status)) ??
+    recommendations[0] ??
+    null
   const activeRecommendationEvidence = activeRecommendation?.insight_id
     ? insights.find((i) => i.id === activeRecommendation.insight_id)?.evidence ?? []
     : []
@@ -71,8 +83,13 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const collateralPortfolioIds = new Set(creditFacilities.map((f) => f.collateral_portfolio_id))
   const lastContact = rmNotes.length ? [...rmNotes].sort((a, b) => b.note_date.localeCompare(a.note_date))[0].note_date : null
 
+  const scenario = scenarioCode ? await getDemoScenario(scenarioCode) : null
+  const scenarioEvents = scenario ? await getScenarioEvents(scenario.id) : []
+
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-6 py-6 lg:px-8">
+      {scenario ? <ScenarioBanner scenario={scenario} hypotheticalEvents={scenarioEvents} /> : null}
+
       <ClientHeader
         name={client.client_name}
         domicile={client.country_of_residence ?? client.tax_domicile ?? '—'}

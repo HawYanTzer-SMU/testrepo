@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { FileTextIcon, ShieldAlertIcon } from 'lucide-react'
+import { FileTextIcon, RotateCcwIcon, ShieldAlertIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RecommendationWithClient } from '@/services/recommendations'
 import { toActionStatus, toPriorityBadge, toCategoryLabel } from '@/lib/recommendation-display'
@@ -25,8 +25,9 @@ export function ActionQueueCard({ recommendation }: { recommendation: Recommenda
   const [pending, startTransition] = React.useTransition()
   const status = toActionStatus(recommendation.status)
   const editable = status === 'Awaiting Review'
+  const isDeferred = recommendation.status === 'DEFERRED'
 
-  function decide(eventType: 'APPROVED' | 'CLIENT_DEFERRED') {
+  function decide(eventType: 'APPROVED' | 'CLIENT_DEFERRED' | 'RESURFACED') {
     startTransition(async () => {
       await transitionAction(recommendation.id, eventType)
     })
@@ -83,6 +84,12 @@ export function ActionQueueCard({ recommendation }: { recommendation: Recommenda
                   Defer
                 </Button>
               </>
+            ) : null}
+            {isDeferred ? (
+              <Button size="sm" onClick={() => decide('RESURFACED')} disabled={pending}>
+                <RotateCcwIcon data-icon="inline-start" />
+                Resurface
+              </Button>
             ) : null}
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { PenLineIcon, SendIcon, ClockIcon, XIcon } from 'lucide-react'
+import { PenLineIcon, SendIcon, ClockIcon, XIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { AssistLabel, SourceCitation } from './source-citation'
@@ -66,7 +66,7 @@ export function RecommendationPanel({
     })
   }
 
-  function transition(eventType: 'RM_REVIEWED' | 'CLIENT_DEFERRED' | 'CLIENT_REJECTED') {
+  function transition(eventType: 'RM_REVIEWED' | 'CLIENT_DEFERRED' | 'CLIENT_REJECTED' | 'RESURFACED') {
     setError(null)
     startTransition(async () => {
       try {
@@ -77,7 +77,8 @@ export function RecommendationPanel({
     })
   }
 
-  const isTerminal = recommendation.status === 'REJECTED' || recommendation.status === 'CLOSED' || recommendation.status === 'DEFERRED'
+  const isDeferred = recommendation.status === 'DEFERRED'
+  const isTerminal = recommendation.status === 'REJECTED' || recommendation.status === 'CLOSED'
 
   return (
     <section aria-labelledby="rec-heading" className="rounded-lg border bg-card">
@@ -147,7 +148,21 @@ export function RecommendationPanel({
         </p>
       </div>
 
-      {!isTerminal && (
+      {isDeferred && (
+        <div className="flex flex-wrap items-center gap-2 border-t px-6 py-3">
+          <p className="mr-auto text-xs text-muted-foreground">Previously deferred — condition may now apply again.</p>
+          <Button size="sm" onClick={() => transition('RESURFACED')} disabled={pending}>
+            <RotateCcwIcon data-icon="inline-start" />
+            Resurface
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => transition('CLIENT_REJECTED')} disabled={pending}>
+            <XIcon data-icon="inline-start" />
+            Reject
+          </Button>
+        </div>
+      )}
+
+      {!isDeferred && !isTerminal && (
         <div className="flex flex-wrap items-center gap-2 border-t px-6 py-3">
           <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)} disabled={pending}>
             <PenLineIcon data-icon="inline-start" />

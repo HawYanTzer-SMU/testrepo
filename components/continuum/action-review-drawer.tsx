@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { PenLineIcon } from 'lucide-react'
+import { PenLineIcon, RotateCcwIcon } from 'lucide-react'
 import type { RecommendationWithClient } from '@/services/recommendations'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -47,14 +47,15 @@ export function ActionReviewDrawer({
     })
   }
 
-  function decide(eventType: 'APPROVED' | 'CLIENT_DEFERRED' | 'CLIENT_REJECTED') {
+  function decide(eventType: 'APPROVED' | 'CLIENT_DEFERRED' | 'CLIENT_REJECTED' | 'RESURFACED') {
     startTransition(async () => {
       await transitionAction(recommendation.id, eventType)
       onOpenChange(false)
     })
   }
 
-  const isTerminal = ['REJECTED', 'CLOSED', 'DEFERRED'].includes(recommendation.status)
+  const isDeferred = recommendation.status === 'DEFERRED'
+  const isTerminal = ['REJECTED', 'CLOSED'].includes(recommendation.status)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -99,7 +100,19 @@ export function ActionReviewDrawer({
           </p>
         </div>
 
-        {!isTerminal && (
+        {isDeferred && (
+          <SheetFooter className="mt-0 flex-row flex-wrap gap-2 border-t px-5 py-4">
+            <Button className="flex-1" onClick={() => decide('RESURFACED')} disabled={pending}>
+              <RotateCcwIcon data-icon="inline-start" />
+              Resurface
+            </Button>
+            <Button variant="destructive" onClick={() => decide('CLIENT_REJECTED')} disabled={pending}>
+              Reject
+            </Button>
+          </SheetFooter>
+        )}
+
+        {!isDeferred && !isTerminal && (
           <SheetFooter className="mt-0 flex-row flex-wrap gap-2 border-t px-5 py-4">
             <Button className="flex-1" onClick={() => decide('APPROVED')} disabled={pending}>
               Approve

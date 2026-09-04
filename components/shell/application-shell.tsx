@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -16,6 +17,8 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { DemoScenarioSelector } from './demo-scenario-selector'
+import type { DemoScenario } from '@/services/scenarios'
 
 function buildPrimaryNav(actionQueueCount: number) {
   return [
@@ -80,9 +83,11 @@ function NavItem({
 export function ApplicationShell({
   children,
   actionQueueCount = 0,
+  scenarios = [],
 }: {
   children: React.ReactNode
   actionQueueCount?: number
+  scenarios?: DemoScenario[]
 }) {
   const pathname = usePathname()
   const today = 'Saturday, 5 September 2026'
@@ -140,6 +145,12 @@ export function ApplicationShell({
               aria-label="Search clients"
               className="h-8 bg-card pl-8 text-[13px]"
             />
+          </div>
+
+          <div className="hidden lg:block">
+            <Suspense fallback={null}>
+              <DemoScenarioSelector scenarios={scenarios} />
+            </Suspense>
           </div>
 
           <div className="ml-auto flex items-center gap-4">

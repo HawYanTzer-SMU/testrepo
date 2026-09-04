@@ -7,10 +7,10 @@
 import { getSupabaseClient } from "@/lib/supabase/server"
 import { getClientById } from "./clients"
 import { getClientCreditFacilities } from "./credit"
-import { createInsight, getInsights } from "./insights"
+import { createInsight, getInsights, updateInsight } from "./insights"
 import { getClientPlannedCashNeeds } from "./planning"
 import { getClientHoldings, getClientPortfolios, getMandateAllocations } from "./portfolios"
-import { allocationByAssetClass, concentrationByRegion, findMandateBreaches } from "@/lib/portfolio-analytics"
+import { concentrationByRegion, findMandateBreaches, singleNameLookThrough } from "@/lib/portfolio-analytics"
 import { getLatestSnapshotDate } from "./snapshots"
 import type { CreateInsightInput } from "./insights"
 
@@ -164,6 +164,39 @@ export async function computeCandidateInsights(clientId: string): Promise<Create
         ],
       })
     }
+
+    // --- CONCENTRATION_RISK: single-name exposure vs the mandate's cap,
+    // with structured-note underlyings looked through (see
+    // lib/portfolio-analytics.ts singleNameLookThrough) so a note doesn't
+    // hide behind the "Structured Products" asset class. ------------------
+    const maxSinglePositionPct = allocations[0]?.max_single_position_pct
+    if (maxSinglePositionPct != null) {
+      for (const exposure of singleNameLookThrough(portfolioHoldings)) {
+        if (exposure.pct <= maxSinglePositionPct) continue
+
+        candidates.push({
+          client_id: clientId,
+          insight_type: "CONCENTRATION_RISK",
+          severity: exposure.pct - maxSinglePositionPct > 10 ? "High" : "Medium",
+          title: `${exposure.name}: ${exposure.pct.toFixed(1)}% single-name exposure vs ${maxSinglePositionPct}% mandate cap`,
+          summary: `Once ${exposure.contributingHoldings.length > 1 ? "the structured-product exposure to the same name is counted alongside the direct holding" : "counted"}, ${exposure.name} represents ${exposure.pct.toFixed(1)}% of ${portfolio.portfolio_name} — above the ${portfolio.mandate_code} mandate's ${maxSinglePositionPct}% single-position cap (as of ${snapshotDate}).`,
+          evidence: [
+            ...exposure.contributingHoldings.map((h) => ({
+              source_table: "holdings",
+              source_record_id: String(h.id),
+              evidence_type: "single_name_contributor",
+              description: `${h.instrument.instrument_name} (${h.instrument.asset_class}${h.instrument.underlying_reference ? `, ${h.instrument.underlying_reference}` : ""}): USD ${h.market_value_usd.toLocaleString()} as of ${h.snapshot_date}`,
+            })),
+            {
+              source_table: "mandate_allocations",
+              source_record_id: `${portfolio.mandate_code}:max_single_position_pct`,
+              evidence_type: "mandate_rule",
+              description: `Single-position cap under ${portfolio.mandate_code}: ${maxSinglePositionPct}%`,
+            },
+          ],
+        })
+      }
+    }
   }
 
   return candidates
@@ -174,10 +207,12 @@ export async function computeCandidateInsights(clientId: string): Promise<Create
  * (by insight_type + title, so re-running doesn't spam duplicates or fight
  * an RM who already dismissed something) and inserts only what's new.
  */
-export async function generateInsightsForClient(clientId: string): Promise<{ created: number; skipped: number }> {
+export async function generateInsightsForClient(clientId: string): Promise<{ created: number; skipped: number; dismissed: number }> {
   const [candidates, existing] = await Promise.all([computeCandidateInsights(clientId), getInsights(clientId)])
 
-  const openKeys = new Set(existing.filter((i) => i.status === "OPEN").map((i) => `${i.insight_type}:${i.title}`))
+  const candidateKeys = new Set(candidates.map((c) => `${c.insight_type}:${c.title}`))
+  const openInsights = existing.filter((i) => i.status === "OPEN")
+  const openKeys = new Set(openInsights.map((i) => `${i.insight_type}:${i.title}`))
 
   let created = 0
   let skipped = 0
@@ -191,15 +226,29 @@ export async function generateInsightsForClient(clientId: string): Promise<{ cre
     created++
   }
 
-  return { created, skipped }
+  // Rules change over time (e.g. a materiality threshold gets stricter).
+  // Rather than deleting stale insights, mark them DISMISSED — they stay in
+  // the audit trail, and any recommendation that referenced one keeps its
+  // history via insight_id ON DELETE SET NULL semantics never even
+  // triggering, since the insight row itself is untouched.
+  let dismissed = 0
+  for (const insight of openInsights) {
+    const key = `${insight.insight_type}:${insight.title}`
+    if (!candidateKeys.has(key)) {
+      await updateInsight(insight.id, { status: "DISMISSED" })
+      dismissed++
+    }
+  }
+
+  return { created, skipped, dismissed }
 }
 
-export async function generateInsightsForAllClients(): Promise<Record<string, { created: number; skipped: number }>> {
+export async function generateInsightsForAllClients(): Promise<Record<string, { created: number; skipped: number; dismissed: number }>> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.from("clients").select("client_id")
   if (error) throw new Error(`generateInsightsForAllClients: ${error.message}`)
 
-  const results: Record<string, { created: number; skipped: number }> = {}
+  const results: Record<string, { created: number; skipped: number; dismissed: number }> = {}
   for (const { client_id } of data as { client_id: string }[]) {
     results[client_id] = await generateInsightsForClient(client_id)
   }

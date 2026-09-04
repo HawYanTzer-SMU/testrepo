@@ -42,6 +42,54 @@ export function topHoldings(holdings: HoldingWithInstrument[], n = 6): HoldingWi
   return [...holdings].sort((a, b) => b.market_value_usd - a.market_value_usd).slice(0, n)
 }
 
+export interface SingleNameExposure {
+  name: string
+  lookThroughValueUsd: number
+  pct: number
+  contributingHoldings: HoldingWithInstrument[]
+}
+
+/**
+ * Attributes structured-product value back to its underlying name when that
+ * name is identifiable, so a single-underlying note doesn't hide behind the
+ * "Structured Products" asset class. `underlying_reference` is free text
+ * (e.g. "Single underlying: Helios Cloud Systems Inc") — matched against the
+ * instrument names already present in this client's own holdings, which is
+ * the correct scope for this check: look-through only matters if the client
+ * is also (or instead) exposed to that name directly elsewhere in this same
+ * portfolio. Multi-name "worst-of" baskets are left attributed to
+ * themselves — attributing a basket's value to one of several names would
+ * overstate that name's real exposure.
+ */
+export function singleNameLookThrough(holdings: HoldingWithInstrument[]): SingleNameExposure[] {
+  const total = totalValueUsd(holdings)
+  const namesInPortfolio = [...new Set(holdings.map((h) => h.instrument.instrument_name))]
+  const buckets = new Map<string, { valueUsd: number; holdings: HoldingWithInstrument[] }>()
+
+  for (const h of holdings) {
+    let name = h.instrument.instrument_name
+    const ref = h.instrument.underlying_reference
+    if (ref && !ref.toLowerCase().includes("basket") && !ref.toLowerCase().includes("worst-of")) {
+      const matched = namesInPortfolio.find((n) => n !== h.instrument.instrument_name && ref.includes(n))
+      if (matched) name = matched
+    }
+    const entry = buckets.get(name) ?? { valueUsd: 0, holdings: [] }
+    entry.valueUsd += h.market_value_usd
+    entry.holdings.push(h)
+    buckets.set(name, entry)
+  }
+
+  return [...buckets.entries()]
+    .map(([name, { valueUsd, holdings: hs }]) => ({
+      name,
+      lookThroughValueUsd: valueUsd,
+      pct: total > 0 ? (valueUsd / total) * 100 : 0,
+      contributingHoldings: hs,
+    }))
+    .filter((e) => e.contributingHoldings.length > 1)
+    .sort((a, b) => b.lookThroughValueUsd - a.lookThroughValueUsd)
+}
+
 export interface MandateBreach {
   assetClass: string
   actualPct: number
