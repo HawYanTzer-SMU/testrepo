@@ -47,38 +47,7 @@ export interface PriorityClient {
   domicile: string
 }
 
-export interface AdviceEntry {
-  id: string
-  date: string
-  trigger: string
-  recommendation: string
-  status: AdviceStatus
-  outcome: string
-  rmComment: string
-  clientReason?: string
-  followUpTrigger: string
-  evidence: Evidence[]
-  current?: boolean
-}
-
 export type ActionStatus = 'Awaiting Review' | 'Approved' | 'Deferred' | 'Completed' | 'Rejected'
-
-export interface ActionItem {
-  id: string
-  clientId: string
-  client: string
-  type: string
-  priority: Priority
-  workflow: string
-  prepared: string[]
-  compliance?: string
-  status: ActionStatus
-  created: string
-  due?: string
-  approvals: { label: string; done: boolean }[]
-  message?: string
-  evidence?: Evidence[]
-}
 
 export interface LedgerRow {
   id: string
